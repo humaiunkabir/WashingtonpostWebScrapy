@@ -51,7 +51,9 @@ class WebsiteScrapper:
             self.books.append(book_dict)
         
         return self.books
-
+    
+    def get_books_bytitle(self, topic):
+        print(f"Your entered {topic} is found in website topic list")
 # scrapper = WebsiteScrapper()
 # topics = scrapper.get_books_topics()
 # books = scrapper.get_books()
@@ -66,6 +68,6 @@ scrapper = WebsiteScrapper()
 topics = scrapper.get_books_topics()
 
 if topic in topics:
-    print("Your entered topic is found in website topic list")
+    scrapper.get_books_bytitle(topic)
 else: 
     print("Your entered topic is not found in website topic list")
