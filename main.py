@@ -1,73 +1,95 @@
 import requests
 from bs4 import BeautifulSoup
+import csv
+import re
 
-website_url = "http://books.toscrape.com/"
+website_url = "https://www.washingtonpost.com/world/ukraine-russia/"
 
 class WebsiteScrapper: 
     def __init__(self) -> None:
-        self.book_topics = []
-        self.books = []
-        self._content = self._get_website_content(website_url)
-        self._soup = BeautifulSoup(self._content, 'html.parser')
+        self.washingtonposts = []
     
     def _get_website_content(self,url):
         response = requests.get(url)
-        return response.content
+        self._content = response.content
+        self._soup = BeautifulSoup(self._content, 'html.parser')
+        return self._soup
 
 
-    def get_books_topics(self):
-        
-        topic_ul = self._soup.find_all('ul', class_="nav-list")[0]
-        topic_li = topic_ul.find_all('li')[0]
-        topics_li = topic_li.find('ul').find_all('li')
+    def get_washingtonposts(self):
+        articles=""
+        images = ""
+        title=""
+        mainsite = self._get_website_content(website_url)
+        alldivs  = mainsite.find_all('div')
 
-        for topic in topics_li:
-            topic_name = topic.find('a').text
-            self.book_topics.append(topic_name.strip())
+        for alldiv in alldivs:
+            # print(href.get("href"))
+            datafeature = alldiv.get("data-feature-id")
+            if datafeature=='homepage/story':
+                href = alldiv.find('div',class_='headline relative gray-darkest pb-xs').find('a').get('href')
+                title = alldiv.find('div',class_='headline relative gray-darkest pb-xs').find('a').text
+                # print(title)
+                # print(href)
+                self._contenteachpost = self._get_website_content(href)
+               
+                article  = self._contenteachpost.find('article')
+                allarticle = article.find_all('div',class_='article-body')
+                for eacharticle in allarticle:
+                    # print(eacharticle.text.strip())
+                    each = eacharticle.text.strip()
+                    articles += each
+                
+                allimagediv=self._contenteachpost.find_all('img') 
+                for imagediv in allimagediv:
+                    imagesrc = imagediv.get('src')
+                    imagesrcset = imagediv.get('srcset')
+                    if imagesrcset:
+                        imagesrcfinal = imagesrcset.split(',')[0]
+                        images += imagesrcfinal + ','*1
+                        # print(imagesrcfinal)
+                    if imagesrc:
+                        images += imagesrc + ','*1
+                        # print(imagesrc)
+                     
+                post_dict={
+                    "title": title,
+                    "content": articles,
+                    "images": images
+                }
 
-        return self.book_topics
+                self.washingtonposts.append(post_dict)
+        return self.washingtonposts
+            
 
-    def get_books(self):
-        
-        section = self._soup.find('section')
-        div = section.find_all("div")[1]
-        ol = div.find("ol")
-        all_li = ol.find_all("li")
-
-        for li in all_li:
-            article = li.find("article")
-            src = article.find("div", class_="image_container").find("a").find("img").get("src")
-            title = article.find("h3").find("a").get("title")
-            product_price_div = article.find("div",class_="product_price")
-            price = product_price_div.find("p",class_="price_color").text
-            availability = product_price_div.find("p", class_="instock").text.strip()
-            book_dict={
-                "book_title": title,
-                "image_url": f"http://books.toscrape.com/{src}",
-                "book_price": price,
-                "is_available": availability
-            }
-
-            self.books.append(book_dict)
-        
-        return self.books
-    
-    def get_books_bytitle(self, topic):
-        print(f"Your entered {topic} is found in website topic list")
-# scrapper = WebsiteScrapper()
-# topics = scrapper.get_books_topics()
+scrapper = WebsiteScrapper()
+allposts = scrapper.get_washingtonposts()
+print(allposts)
 # books = scrapper.get_books()
+# print(books)
+
+header =['title', 'content', 'images']
+
+csv_file = "washingtonpost.csv"
+try:
+    with open(csv_file, 'w') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=header)
+        writer.writeheader()
+        for data in allposts:
+            writer.writerow(data)
+except IOError:
+    print("I/O error")
 
 # print("--------------------- Topics--------------------------")
 # print(topics)
 # print("--------------------- Books--------------------------")
 # print(books)
 
-topic = input("Enter a topic: ")
-scrapper = WebsiteScrapper()
-topics = scrapper.get_books_topics()
+# topic = input("Enter a topic: ")
+# scrapper = WebsiteScrapper()
+# topics = scrapper.get_books_topics()
 
-if topic in topics:
-    scrapper.get_books_bytitle(topic)
-else: 
-    print("Your entered topic is not found in website topic list")
+# if topic in topics:
+#     scrapper.get_books_bytitle(topic)
+# else: 
+#     print("Your entered topic is not found in website topic list")
